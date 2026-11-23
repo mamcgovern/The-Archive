@@ -1,10 +1,10 @@
-
 import { useEffect, useState } from "react";
 import {
   collection,
   addDoc,
   deleteDoc,
   doc,
+  getDocs,
   onSnapshot,
   serverTimestamp,
   writeBatch,
@@ -20,74 +20,12 @@ import {
 } from "lucide-react";
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
+import {
+  searchBooks,
+  saveBookMetadata,
+} from "../services/bookCatalog";
 
 const HOUSEHOLD_ID = "maddie-nick";
-
-async function searchGoogleBooks(query) {
-  const response = await fetch(
-    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`
-  );
-
-  if (!response.ok) {
-    throw new Error("Google Books search failed.");
-  }
-
-  const data = await response.json();
-
-  return (data.items || []).map((item) => {
-    const book = item.volumeInfo || {};
-    const identifiers = book.industryIdentifiers || [];
-
-    const isbn13 = identifiers.find(
-      (identifier) => identifier.type === "ISBN_13"
-    );
-
-    const isbn10 = identifiers.find(
-      (identifier) => identifier.type === "ISBN_10"
-    );
-
-    return {
-      id: item.id,
-      title: book.title || "Untitled",
-      creator: book.authors?.join(", ") || "",
-      year: book.publishedDate?.match(/\d{4}/)?.[0] || "",
-      publisher: book.publisher || "",
-      description: book.description || "",
-      cover:
-        book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
-      genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
-      isbn: isbn13?.identifier || isbn10?.identifier || "",
-    };
-  });
-}
-
-async function searchOpenLibrary(query) {
-  const response = await fetch(
-    `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`
-  );
-
-  if (!response.ok) {
-    throw new Error("Open Library search failed.");
-  }
-
-  const data = await response.json();
-
-  return (data.docs || []).map((book) => ({
-    id: book.key,
-    title: book.title || "Untitled",
-    creator: book.author_name?.join(", ") || "",
-    year: book.first_publish_year
-      ? String(book.first_publish_year)
-      : "",
-    publisher: book.publisher?.[0] || "",
-    description: "",
-    cover: book.cover_i
-      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
-      : "",
-    genre: book.subject?.[0] || "",
-    isbn: book.isbn?.[0] || "",
-  }));
-}
 
 function Wishlist() {
   const { user } = useAuth();
@@ -103,6 +41,7 @@ function Wishlist() {
   const [searchResults, setSearchResults] = useState([]);
   const [selectedBook, setSelectedBook] = useState(null);
   const [selectedFormat, setSelectedFormat] = useState("Physical Copy");
+  const [wantedBy, setWantedBy] = useState("Both");
 
   const [searching, setSearching] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -110,7 +49,6 @@ function Wishlist() {
 
   const [processingId, setProcessingId] = useState(null);
 
-  // Listen for changes to the shared household Wantlist.
   useEffect(() => {
     if (!user) {
       setItems([]);
@@ -140,8 +78,8 @@ function Wishlist() {
         setLoading(false);
       },
       (err) => {
-        console.error("Error loading Wantlist:", err);
-        setError("We couldn't load your Wantlist.");
+        console.error("Error loading Wishlist:", err);
+        setError("We couldn't load your Wishlist.");
         setLoading(false);
       }
     );
@@ -158,7 +96,6 @@ function Wishlist() {
     .sort((a, b) => {
       const dateA = a.createdAt?.toDate?.() || new Date(0);
       const dateB = b.createdAt?.toDate?.() || new Date(0);
-
       return dateB - dateA;
     });
 
@@ -168,6 +105,7 @@ function Wishlist() {
     setSearchResults([]);
     setSelectedBook(null);
     setSelectedFormat("Physical Copy");
+    setWantedBy("Both");
     setSearchMessage("");
     setError("");
   }
@@ -195,25 +133,10 @@ function Wishlist() {
     setSearching(true);
     setSearchResults([]);
     setSelectedBook(null);
-    setSearchMessage("Searching for books...");
+    setSearchMessage("Searching your catalog and book databases...");
 
     try {
-      let results = [];
-
-      try {
-        results = await searchGoogleBooks(query);
-      } catch (err) {
-        console.warn("Google Books search unavailable:", err);
-      }
-
-      if (results.length === 0) {
-        try {
-          results = await searchOpenLibrary(query);
-        } catch (err) {
-          console.warn("Open Library search unavailable:", err);
-        }
-      }
-
+      const results = await searchBooks(query);
       setSearchResults(results);
 
       if (results.length === 0) {
@@ -226,7 +149,7 @@ function Wishlist() {
         );
       }
     } catch (err) {
-      console.error("Wantlist search error:", err);
+      console.error("Wishlist search error:", err);
       setSearchMessage("Search is unavailable right now. Please try again.");
     } finally {
       setSearching(false);
@@ -240,6 +163,11 @@ function Wishlist() {
     setError("");
 
     try {
+      await saveBookMetadata({
+        ...selectedBook,
+        source: selectedBook.source || "Google Books",
+      });
+
       const wishlistRef = collection(
         db,
         "households",
@@ -252,12 +180,16 @@ function Wishlist() {
         creator: selectedBook.creator,
         category: "Books",
         format: selectedFormat,
+        wantedBy,
         year: selectedBook.year ? Number(selectedBook.year) : null,
         isbn: selectedBook.isbn || "",
         publisher: selectedBook.publisher || "",
         genre: selectedBook.genre || "",
         description: selectedBook.description || "",
         cover: selectedBook.cover || "",
+        googleBooksRating: selectedBook.googleBooksRating ?? null,
+        googleBooksRatingsCount:
+          selectedBook.googleBooksRatingsCount ?? null,
         createdBy: user.uid,
         addedByName: user.displayName || user.email || "Household member",
         createdAt: serverTimestamp(),
@@ -265,8 +197,8 @@ function Wishlist() {
 
       closeModal();
     } catch (err) {
-      console.error("Error adding to Wantlist:", err);
-      setError("We couldn't add this book to your Wantlist.");
+      console.error("Error adding to Wishlist:", err);
+      setError("We couldn't add this book to your Wishlist.");
     } finally {
       setSaving(false);
     }
@@ -274,7 +206,7 @@ function Wishlist() {
 
   async function handleRemove(itemId) {
     const confirmed = window.confirm(
-      "Remove this book from your Wantlist?"
+      "Remove this book from your Wishlist?"
     );
 
     if (!confirmed) return;
@@ -284,16 +216,10 @@ function Wishlist() {
 
     try {
       await deleteDoc(
-        doc(
-          db,
-          "households",
-          HOUSEHOLD_ID,
-          "wishlist",
-          itemId
-        )
+        doc(db, "households", HOUSEHOLD_ID, "wishlist", itemId)
       );
     } catch (err) {
-      console.error("Error removing Wantlist item:", err);
+      console.error("Error removing Wishlist item:", err);
       setError("We couldn't remove this book. Please try again.");
     } finally {
       setProcessingId(null);
@@ -304,7 +230,7 @@ function Wishlist() {
     if (!user) return;
 
     const confirmed = window.confirm(
-      `Add "${item.title}" to your shared collection and remove it from the Wantlist?`
+      `Add "${item.title}" to your shared collection and remove it from the Wishlist?`
     );
 
     if (!confirmed) return;
@@ -344,6 +270,12 @@ function Wishlist() {
         cover: item.cover || "",
         location: "",
         notes: "",
+        googleBooksRating:
+          item.googleBooksRating ?? item.goodreadsRating ?? null,
+        googleBooksRatingsCount:
+          item.googleBooksRatingsCount ??
+          item.goodreadsRatingsCount ??
+          null,
         status: "Owned",
         rating: null,
         createdBy: user.uid,
@@ -351,7 +283,6 @@ function Wishlist() {
       });
 
       batch.delete(wishlistItemRef);
-
       await batch.commit();
     } catch (err) {
       console.error("Error moving book to collection:", err);
@@ -363,18 +294,121 @@ function Wishlist() {
     }
   }
 
+  async function handleMarkBorrowed(item) {
+    if (!user) return;
+
+    const person = item.wantedBy || "Both";
+    const confirmed = window.confirm(
+      `Add "${item.title}" to ${person === "Both" ? "Maddie and Nick's" : `${person}'s`} Reading Activity as a borrowed book and remove it from the Wishlist?`
+    );
+
+    if (!confirmed) return;
+
+    setProcessingId(item.id);
+    setError("");
+
+    try {
+      const membersRef = collection(
+        db,
+        "households",
+        HOUSEHOLD_ID,
+        "members"
+      );
+
+      const membersSnapshot = await getDocs(membersRef);
+      const members = membersSnapshot.docs.map((memberDoc) => ({
+        uid: memberDoc.id,
+        ...memberDoc.data(),
+      }));
+
+      const wantedNames =
+        person === "Both" ? ["Maddie", "Nick"] : [person];
+
+      const selectedMembers = wantedNames.map((name) =>
+        members.find(
+          (member) =>
+            (member.displayName || "").toLowerCase() === name.toLowerCase()
+        )
+      );
+
+      if (selectedMembers.some((member) => !member)) {
+        throw new Error(
+          "One or more household members could not be found. Check the household members in Firestore."
+        );
+      }
+
+      const activityRef = collection(
+        db,
+        "households",
+        HOUSEHOLD_ID,
+        "activity"
+      );
+
+      const wishlistItemRef = doc(
+        db,
+        "households",
+        HOUSEHOLD_ID,
+        "wishlist",
+        item.id
+      );
+
+      const batch = writeBatch(db);
+
+      selectedMembers.forEach((member) => {
+        const activityEntryRef = doc(activityRef);
+
+        batch.set(activityEntryRef, {
+          bookId: null,
+          title: item.title || "",
+          creator: item.creator || "",
+          cover: item.cover || "",
+          format: item.format || "Physical Copy",
+          googleBooksRating:
+            item.googleBooksRating ?? item.goodreadsRating ?? null,
+          googleBooksRatingsCount:
+            item.googleBooksRatingsCount ??
+            item.goodreadsRatingsCount ??
+            null,
+          isBorrowed: true,
+          userId: member.uid,
+          userName: member.displayName || person,
+          status: "Want to Read",
+          progressValue: 0,
+          progressType: "percent",
+          startDate: "",
+          finishDate: "",
+          personalRating: null,
+          review: "",
+          createdAt: serverTimestamp(),
+          updatedAt: serverTimestamp(),
+        });
+      });
+
+      batch.delete(wishlistItemRef);
+      await batch.commit();
+    } catch (err) {
+      console.error("Error marking Wishlist book as borrowed:", err);
+      setError(
+        err.message ||
+          "We couldn't add this book to Reading Activity. Please try again."
+      );
+    } finally {
+      setProcessingId(null);
+    }
+  }
+
   return (
     <div className="wishlist-page">
       <div className="page-heading">
         <div>
           <div className="eyebrow">SOMEDAY, SOON</div>
-          <h1>Wantlist</h1>
+          <h1>Wishlist</h1>
           <p>All the books you'd love to bring home.</p>
         </div>
 
         <button className="add-button" onClick={openModal}>
           <Plus size={17} />
-          Add to Wantlist
+          Add to Wishlist
         </button>
       </div>
 
@@ -383,7 +417,7 @@ function Wishlist() {
           <Search size={17} />
           <input
             type="search"
-            placeholder="Search your Wantlist..."
+            placeholder="Search your Wishlist..."
             value={search}
             onChange={(event) => setSearch(event.target.value)}
           />
@@ -395,15 +429,13 @@ function Wishlist() {
           <strong>{filteredItems.length}</strong>{" "}
           {filteredItems.length === 1 ? "book wanted" : "books wanted"}
         </span>
-        <span>Shared household Wantlist</span>
+        <span>Shared household Wishlist</span>
       </div>
 
       {error && <p className="form-error">{error}</p>}
 
       {loading ? (
-        <div className="empty-collection">
-          Loading your Wantlist...
-        </div>
+        <div className="empty-collection">Loading your Wishlist...</div>
       ) : filteredItems.length > 0 ? (
         <div className="wishlist-grid">
           {filteredItems.map((item) => (
@@ -416,9 +448,7 @@ function Wishlist() {
                 )}
 
                 {item.format && (
-                  <span className="wishlist-format">
-                    {item.format}
-                  </span>
+                  <span className="wishlist-format">{item.format}</span>
                 )}
               </div>
 
@@ -426,6 +456,10 @@ function Wishlist() {
                 <span className="wishlist-category">BOOK</span>
                 <h3>{item.title}</h3>
                 <p>{item.creator || "Author unknown"}</p>
+
+                <div className="wishlist-wanted-by">
+                  Wanted by: <strong>{item.wantedBy || "Both"}</strong>
+                </div>
 
                 <div className="wishlist-owner">
                   Added by {item.addedByName || "a household member"}
@@ -441,7 +475,17 @@ function Wishlist() {
                     <ShoppingBag size={15} />
                     {processingId === item.id
                       ? "Processing..."
-                      : "Mark purchased"}
+                      : "Purchased"}
+                  </button>
+
+                  <button
+                    type="button"
+                    className="wishlist-borrowed-button"
+                    onClick={() => handleMarkBorrowed(item)}
+                    disabled={processingId === item.id}
+                  >
+                    <BookOpen size={15} />
+                    Borrowed
                   </button>
 
                   <button
@@ -449,8 +493,8 @@ function Wishlist() {
                     className="wishlist-remove-button"
                     onClick={() => handleRemove(item.id)}
                     disabled={processingId === item.id}
-                    aria-label={`Remove ${item.title} from Wantlist`}
-                    title="Remove from Wantlist"
+                    aria-label={`Remove ${item.title} from Wishlist`}
+                    title="Remove from Wishlist"
                   >
                     <Trash2 size={16} />
                   </button>
@@ -463,9 +507,7 @@ function Wishlist() {
         <div className="empty-collection">
           <Heart size={28} />
 
-          <h3>
-            {search ? "No books found" : "Your Wantlist is empty"}
-          </h3>
+          <h3>{search ? "No books found" : "Your Wishlist is empty"}</h3>
 
           <p>
             {search
@@ -499,7 +541,7 @@ function Wishlist() {
           >
             <div className="wishlist-modal-header">
               <div>
-                <p className="eyebrow">YOUR SHARED WANTLIST</p>
+                <p className="eyebrow">YOUR SHARED WISHLIST</p>
                 <h2 id="wishlist-modal-title">Add a Book</h2>
                 <p>Find the book you're hoping to bring home.</p>
               </div>
@@ -549,9 +591,7 @@ function Wishlist() {
                     type="button"
                     key={`${book.id}-${index}`}
                     className={`book-search-result ${
-                      selectedBook?.id === book.id
-                        ? "selected"
-                        : ""
+                      selectedBook?.id === book.id ? "selected" : ""
                     }`}
                     onClick={() => setSelectedBook(book)}
                   >
@@ -572,12 +612,17 @@ function Wishlist() {
                         {book.year || "Year unknown"}
                         {book.publisher ? ` · ${book.publisher}` : ""}
                       </span>
+                      {book.googleBooksRating != null && (
+                        <span>
+                          Community rating: {book.googleBooksRating}/5
+                          {book.googleBooksRatingsCount != null &&
+                            ` · ${Number(book.googleBooksRatingsCount).toLocaleString()} ratings`}
+                        </span>
+                      )}
                     </div>
 
                     <span className="book-search-select">
-                      {selectedBook?.id === book.id
-                        ? "Selected"
-                        : "Select"}
+                      {selectedBook?.id === book.id ? "Selected" : "Select"}
                     </span>
                   </button>
                 ))}
@@ -591,19 +636,25 @@ function Wishlist() {
                   <span>{selectedBook.title}</span>
                 </div>
 
-                <label htmlFor="wishlist-format">
-                  Format you want
-                </label>
-
+                <label htmlFor="wishlist-format">Format you want</label>
                 <select
                   id="wishlist-format"
                   value={selectedFormat}
-                  onChange={(event) =>
-                    setSelectedFormat(event.target.value)
-                  }
+                  onChange={(event) => setSelectedFormat(event.target.value)}
                 >
                   <option value="Physical Copy">Physical Copy</option>
                   <option value="Audiobook">Audiobook</option>
+                </select>
+
+                <label htmlFor="wishlist-wanted-by">Who wants this book?</label>
+                <select
+                  id="wishlist-wanted-by"
+                  value={wantedBy}
+                  onChange={(event) => setWantedBy(event.target.value)}
+                >
+                  <option value="Maddie">Maddie</option>
+                  <option value="Nick">Nick</option>
+                  <option value="Both">Both</option>
                 </select>
 
                 <button
@@ -613,7 +664,7 @@ function Wishlist() {
                   disabled={saving}
                 >
                   <Plus size={16} />
-                  {saving ? "Adding..." : "Add to Wantlist"}
+                  {saving ? "Adding..." : "Add to Wishlist"}
                 </button>
               </div>
             )}

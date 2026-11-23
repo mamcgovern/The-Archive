@@ -1,4 +1,3 @@
-
 import { useEffect, useState } from "react";
 import { useNavigate, Link, useSearchParams } from "react-router-dom";
 import {
@@ -10,6 +9,11 @@ import {
 } from "lucide-react";
 import { useCollection } from "../contexts/CollectionContext";
 import BarcodeScanner from "../components/BarcodeScanner";
+import {
+  searchBooks,
+  lookupBook,
+  saveBookMetadata,
+} from "../services/bookCatalog";
 
 const initialForm = {
   title: "",
@@ -59,175 +63,6 @@ function isValidISBN(value) {
   }
 
   return false;
-}
-
-function getYear(date) {
-  if (!date) return "";
-
-  const match = String(date).match(/\d{4}/);
-  return match ? match[0] : "";
-}
-
-function getISBN(identifiers = []) {
-  const isbn13 = identifiers.find(
-    (identifier) => identifier.type === "ISBN_13"
-  );
-
-  const isbn10 = identifiers.find(
-    (identifier) => identifier.type === "ISBN_10"
-  );
-
-  return isbn13?.identifier || isbn10?.identifier || "";
-}
-
-// Search Google Books by title, author, or general search terms.
-async function searchGoogleBooks(query) {
-  const response = await fetch(
-    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`
-  );
-
-  if (!response.ok) {
-    throw new Error("Google Books search failed.");
-  }
-
-  const data = await response.json();
-
-  return (data.items || []).map((item) => {
-    const book = item.volumeInfo || {};
-
-    return {
-      id: item.id,
-      source: "Google Books",
-      title: book.title || "Untitled",
-      creator: book.authors?.join(", ") || "",
-      year: getYear(book.publishedDate),
-      publisher: book.publisher || "",
-      description: book.description || "",
-      cover: book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
-      genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
-      isbn: getISBN(book.industryIdentifiers),
-      googleBooksRating: book.averageRating ?? null,
-      googleBooksRatingsCount: book.ratingsCount ?? null,
-    };
-  });
-}
-
-// Search Open Library if Google Books doesn't return results.
-async function searchOpenLibrary(query) {
-  const response = await fetch(
-    `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`
-  );
-
-  if (!response.ok) {
-    throw new Error("Open Library search failed.");
-  }
-
-  const data = await response.json();
-
-  return (data.docs || []).map((book) => ({
-    id: book.key,
-    source: "Open Library",
-    title: book.title || "Untitled",
-    creator: book.author_name?.join(", ") || "",
-    year: book.first_publish_year ? String(book.first_publish_year) : "",
-    publisher: book.publisher?.[0] || "",
-    description: "",
-    cover: book.cover_i
-      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
-      : "",
-    genre: book.subject?.[0] || "",
-    isbn: book.isbn?.[0] || "",
-    googleBooksRating: null,
-    googleBooksRatingsCount: null,
-  }));
-}
-
-async function lookupGoogleBooks(isbn) {
-  const response = await fetch(
-    `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`
-  );
-
-  if (!response.ok) {
-    throw new Error("Google Books lookup failed.");
-  }
-
-  const data = await response.json();
-  const results = data.items || [];
-
-  const selectedResult =
-    results.find((item) => item.volumeInfo?.averageRating != null) ||
-    results[0];
-
-  const book = selectedResult?.volumeInfo;
-  
-  if (!book) return null;
-
-  return {
-    title: book.title || "",
-    creator: book.authors?.join(", ") || "",
-    year: getYear(book.publishedDate),
-    publisher: book.publisher || "",
-    description: book.description || "",
-    cover: book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
-    genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
-    googleBooksRating: book.averageRating ?? null,
-    googleBooksRatingsCount: book.ratingsCount ?? null,
-  };
-}
-
-async function lookupOpenLibrary(isbn) {
-  const response = await fetch(
-    `https://openlibrary.org/api/books?bibkeys=ISBN:${encodeURIComponent(isbn)}&format=json&jscmd=data`
-  );
-
-  if (!response.ok) {
-    throw new Error("Open Library lookup failed.");
-  }
-
-  const data = await response.json();
-  const book = data[`ISBN:${isbn}`];
-
-  if (!book) return null;
-
-  const subjects = book.subjects || [];
-
-  const description =
-    typeof book.description === "string"
-      ? book.description
-      : book.description?.value || "";
-
-  return {
-    title: book.title || "",
-    creator: book.authors?.map((author) => author.name).join(", ") || "",
-    year: getYear(book.publish_date),
-    publisher:
-      book.publishers?.map((publisher) => publisher.name).join(", ") || "",
-    description,
-    cover: book.cover?.large || book.cover?.medium || book.cover?.small || "",
-    genre: subjects[0]?.name || subjects[0] || "",
-    googleBooksRating: null,
-    googleBooksRatingsCount: null,
-  };
-}
-
-async function lookupBook(isbn) {
-  try {
-    const googleBook = await lookupGoogleBooks(isbn);
-
-    if (googleBook) return googleBook;
-  } catch (err) {
-    console.warn("Google Books lookup unavailable:", err);
-  }
-
-  try {
-    const openLibraryBook = await lookupOpenLibrary(isbn);
-
-    if (openLibraryBook) return openLibraryBook;
-  } catch (err) {
-    console.warn("Open Library lookup unavailable:", err);
-  }
-
-  return null;
 }
 
 function AddItem() {
@@ -323,24 +158,10 @@ function AddItem() {
 
     setSearching(true);
     setSearchResults([]);
-    setSearchMessage("Searching for books...");
+    setSearchMessage("Searching your catalog and book databases...");
 
     try {
-      let results = [];
-
-      try {
-        results = await searchGoogleBooks(query);
-      } catch (err) {
-        console.warn("Google Books search unavailable:", err);
-      }
-
-      if (results.length === 0) {
-        try {
-          results = await searchOpenLibrary(query);
-        } catch (err) {
-          console.warn("Open Library search unavailable:", err);
-        }
-      }
+      const results = await searchBooks(query);
 
       setSearchResults(results);
 
@@ -529,6 +350,11 @@ function AddItem() {
             ? Number(googleBooksRatingsCount)
             : null,
       };
+
+      await saveBookMetadata({
+        ...bookDetails,
+        source: "Manual",
+      });
 
       if (isEditing) {
         await updateItem(editId, {

@@ -1065,3 +1065,43 @@
     gap: 7px;
   }
 }
+
+.wishlist-wanted-by {
+  margin-top: 10px;
+  font-size: 0.82rem;
+  color: var(--muted);
+}
+
+.wishlist-wanted-by strong {
+  color: var(--secondary);
+  font-weight: 600;
+}
+
+.wishlist-actions {
+  flex-wrap: wrap;
+}
+
+.wishlist-borrowed-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  padding: 9px 12px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+  color: var(--secondary);
+  font: inherit;
+  font-size: 0.82rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.wishlist-borrowed-button:hover {
+  background: var(--surface-hover);
+}
+
+.wishlist-borrowed-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

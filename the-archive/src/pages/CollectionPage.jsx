@@ -116,89 +116,102 @@ function CollectionPage({
 
       {filteredItems.length > 0 ? (
         <div className="collection-grid">
-          {filteredItems.map((item) => (
-            <article className="collection-card" key={item.id}>
-              <div className="collection-cover">
-                {item.cover ? (
-                  <img
-                    src={item.cover}
-                    alt={`${item.title} cover`}
-                  />
-                ) : (
-                  <div className="cover-placeholder">
-                    {item.title}
-                  </div>
-                )}
+          {filteredItems.map((item) => {
+            const communityRating =
+              item.googleBooksRating ?? item.goodreadsRating;
 
-                {item.format && (
-                  <span className="cover-format">
-                    {item.format}
-                  </span>
-                )}
-              </div>
+            const communityRatingsCount =
+              item.googleBooksRatingsCount ??
+              item.goodreadsRatingsCount;
 
-              <div className="collection-card-info">
-                <h3>{item.title}</h3>
-                <p>{item.creator || "Creator unknown"}</p>
-
-                <div className="collection-card-meta">
-                  <span>{item.year || "Year unknown"}</span>
-                  <span>{item.owner || "Shared"}</span>
-                </div>
-
-                <div className="collection-card-footer">
-                  {item.status && (
-                    <span className="status-tag">
-                      {item.status}
-                    </span>
-                  )}
-
-                  {item.rating != null && (
-                    <span className="rating">
-                      <Star size={13} fill="currentColor" />
-                      {item.rating}
-                    </span>
-                  )}
-                </div>
-
-                {item.goodreadsRating != null && (
-                  <div className="goodreads-rating">
-                    <div className="goodreads-rating-score">
-                      <BookOpen size={14} />
-                      <strong>
-                        {Number(item.goodreadsRating).toFixed(2)}
-                      </strong>
-                      <span>/ 5</span>
+            return (
+              <article className="collection-card" key={item.id}>
+                <div className="collection-cover">
+                  {item.cover ? (
+                    <img
+                      src={item.cover}
+                      alt={`${item.title} cover`}
+                    />
+                  ) : (
+                    <div className="cover-placeholder">
+                      {item.title}
                     </div>
+                  )}
 
-                    {item.goodreadsRatingsCount != null && (
-                      <span className="goodreads-rating-count">
-                        {formatRatingsCount(
-                          item.goodreadsRatingsCount
-                        )}{" "}
-                        ratings
+                  {item.format && (
+                    <span className="cover-format">
+                      {item.format}
+                    </span>
+                  )}
+                </div>
+
+                <div className="collection-card-info">
+                  <h3>{item.title}</h3>
+                  <p>{item.creator || "Creator unknown"}</p>
+
+                  <div className="collection-card-meta">
+                    <span>{item.year || "Year unknown"}</span>
+                    <span>{item.owner || "Shared"}</span>
+                  </div>
+
+                  <div className="collection-card-footer">
+                    {item.status && (
+                      <span className="status-tag">
+                        {item.status}
+                      </span>
+                    )}
+
+                    {item.rating != null && (
+                      <span className="rating">
+                        <Star size={13} fill="currentColor" />
+                        {item.rating}
                       </span>
                     )}
                   </div>
-                )}
 
-                {item.location && (
-                  <div className="storage-location">
-                    <MapPin size={12} />
-                    {item.location}
-                  </div>
-                )}
+                  {communityRating != null && (
+                    <div className="goodreads-rating">
+                      <div className="goodreads-rating-score">
+                        <BookOpen size={14} />
+                        <strong>
+                          {Number(communityRating).toFixed(2)}
+                        </strong>
+                        <span>/ 5</span>
+                      </div>
 
-                <Link
-                  to={`/add?edit=${encodeURIComponent(item.id)}`}
-                  className="edit-item-button"
-                >
-                  <Pencil size={14} />
-                  Edit book
-                </Link>
-              </div>
-            </article>
-          ))}
+                      <span className="goodreads-rating-label">
+                        Community
+                      </span>
+
+                      {communityRatingsCount != null && (
+                        <span className="goodreads-rating-count">
+                          {formatRatingsCount(
+                            communityRatingsCount
+                          )}{" "}
+                          ratings
+                        </span>
+                      )}
+                    </div>
+                  )}
+
+                  {item.location && (
+                    <div className="storage-location">
+                      <MapPin size={12} />
+                      {item.location}
+                    </div>
+                  )}
+
+                  <Link
+                    to={`/add?edit=${encodeURIComponent(item.id)}`}
+                    className="edit-item-button"
+                  >
+                    <Pencil size={14} />
+                    Edit book
+                  </Link>
+                </div>
+              </article>
+            );
+          })}
         </div>
       ) : (
         <div className="empty-collection">

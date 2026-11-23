@@ -51,7 +51,7 @@ function Sidebar() {
             className={({ isActive }) => `nav-item ${isActive ? "active" : ""}`}
           >
             <Heart size={18} />
-            <span>Wantlist</span>
+            <span>Wishlist</span>
           </NavLink>
         </nav>
       </div>

@@ -13,6 +13,8 @@ import {
   updateDoc,
   onSnapshot,
   serverTimestamp,
+  getDoc,
+  setDoc,
 } from "firebase/firestore";
 import { db } from "../firebase/config";
 import { useAuth } from "./AuthContext";
@@ -63,6 +65,92 @@ export function CollectionProvider({ children }) {
 
     return unsubscribe;
   }, [user]);
+
+  // Retrieve cached book metadata using its ISBN.
+  async function getBookMetadata(isbn) {
+    if (!user) {
+      throw new Error("You must be signed in to access the book catalog.");
+    }
+
+    const cleanISBN = String(isbn || "")
+      .replace(/[\s-]/g, "")
+      .toUpperCase();
+
+    if (!cleanISBN) return null;
+
+    const catalogRef = doc(
+      db,
+      "households",
+      HOUSEHOLD_ID,
+      "bookCatalog",
+      cleanISBN
+    );
+
+    const snapshot = await getDoc(catalogRef);
+
+    if (!snapshot.exists()) {
+      return null;
+    }
+
+    return {
+      id: snapshot.id,
+      ...snapshot.data(),
+    };
+  }
+
+  // Save or update book metadata in the shared catalog.
+  async function saveBookMetadata(book) {
+    if (!user) {
+      throw new Error("You must be signed in to update the book catalog.");
+    }
+
+    const isbn = String(book.isbn || "")
+      .replace(/[\s-]/g, "")
+      .toUpperCase();
+
+    const googleBooksId = book.googleBooksId || "";
+
+    // Prefer ISBN as the catalog document ID.
+    // Use the Google Books ID when an ISBN is unavailable.
+    const catalogId = isbn || googleBooksId;
+
+    if (!catalogId) {
+      return null;
+    }
+
+    const catalogRef = doc(
+      db,
+      "households",
+      HOUSEHOLD_ID,
+      "bookCatalog",
+      catalogId
+    );
+
+    const metadata = {
+      title: book.title || "",
+      creator: book.creator || "",
+      isbn,
+      publisher: book.publisher || "",
+      year: book.year || "",
+      description: book.description || "",
+      cover: book.cover || "",
+      genre: book.genre || "",
+      googleBooksRating: book.googleBooksRating ?? null,
+      googleBooksRatingsCount: book.googleBooksRatingsCount ?? null,
+      googleBooksId,
+      metadataSource: book.metadataSource || "Google Books",
+      metadataUpdatedAt: serverTimestamp(),
+      updatedAt: serverTimestamp(),
+    };
+
+    await setDoc(
+      catalogRef,
+      metadata,
+      { merge: true }
+    );
+
+    return catalogId;
+  }
 
   async function addItem(item) {
     if (!user) {
@@ -125,6 +213,8 @@ export function CollectionProvider({ children }) {
         addItem,
         updateItem,
         removeItem,
+        getBookMetadata,
+        saveBookMetadata,
       }}
     >
       {children}
