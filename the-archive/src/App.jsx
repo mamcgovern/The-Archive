@@ -8,6 +8,7 @@ import VideoGames from "./pages/VideoGames";
 import BoardGames from "./pages/BoardGames";
 import Activity from "./pages/Activity";
 import Wishlist from "./pages/Wishlist";
+import AddItem from "./pages/AddItem";
 import "./App.css";
 
 function App() {
@@ -22,6 +23,7 @@ function App() {
           <Route path="/board-games" element={<BoardGames />} />
           <Route path="/activity/:type" element={<Activity />} />
           <Route path="/wishlist" element={<Wishlist />} />
+          <Route path="/add" element={<AddItem />} />
         </Route>
       </Routes>
     </BrowserRouter>
