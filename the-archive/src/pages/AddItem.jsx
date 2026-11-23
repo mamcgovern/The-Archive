@@ -6,6 +6,7 @@ import {
   Search,
   ScanLine,
   Trash2,
+  BookOpen,
 } from "lucide-react";
 import { useCollection } from "../contexts/CollectionContext";
 import BarcodeScanner from "../components/BarcodeScanner";
@@ -65,6 +66,76 @@ function getYear(date) {
   return match ? match[0] : "";
 }
 
+function getISBN(identifiers = []) {
+  const isbn13 = identifiers.find(
+    (identifier) => identifier.type === "ISBN_13"
+  );
+
+  const isbn10 = identifiers.find(
+    (identifier) => identifier.type === "ISBN_10"
+  );
+
+  return isbn13?.identifier || isbn10?.identifier || "";
+}
+
+// Search Google Books by title, author, or general search terms.
+async function searchGoogleBooks(query) {
+  const response = await fetch(
+    `https://www.googleapis.com/books/v1/volumes?q=${encodeURIComponent(query)}&maxResults=20`
+  );
+
+  if (!response.ok) {
+    throw new Error("Google Books search failed.");
+  }
+
+  const data = await response.json();
+
+  return (data.items || []).map((item) => {
+    const book = item.volumeInfo || {};
+
+    return {
+      id: item.id,
+      source: "Google Books",
+      title: book.title || "Untitled",
+      creator: book.authors?.join(", ") || "",
+      year: getYear(book.publishedDate),
+      publisher: book.publisher || "",
+      description: book.description || "",
+      cover: book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
+      genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
+      isbn: getISBN(book.industryIdentifiers),
+    };
+  });
+}
+
+// Search Open Library if Google Books doesn't return results.
+async function searchOpenLibrary(query) {
+  const response = await fetch(
+    `https://openlibrary.org/search.json?q=${encodeURIComponent(query)}&limit=20`
+  );
+
+  if (!response.ok) {
+    throw new Error("Open Library search failed.");
+  }
+
+  const data = await response.json();
+
+  return (data.docs || []).map((book) => ({
+    id: book.key,
+    source: "Open Library",
+    title: book.title || "Untitled",
+    creator: book.author_name?.join(", ") || "",
+    year: book.first_publish_year ? String(book.first_publish_year) : "",
+    publisher: book.publisher?.[0] || "",
+    description: "",
+    cover: book.cover_i
+      ? `https://covers.openlibrary.org/b/id/${book.cover_i}-M.jpg`
+      : "",
+    genre: book.subject?.[0] || "",
+    isbn: book.isbn?.[0] || "",
+  }));
+}
+
 async function lookupGoogleBooks(isbn) {
   const response = await fetch(
     `https://www.googleapis.com/books/v1/volumes?q=isbn:${encodeURIComponent(isbn)}`
@@ -79,8 +150,6 @@ async function lookupGoogleBooks(isbn) {
 
   if (!book) return null;
 
-  const categories = book.categories || [];
-
   return {
     title: book.title || "",
     creator: book.authors?.join(", ") || "",
@@ -88,7 +157,7 @@ async function lookupGoogleBooks(isbn) {
     publisher: book.publisher || "",
     description: book.description || "",
     cover: book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
-    genre: categories[0]?.split("/").pop()?.trim() || "",
+    genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
   };
 }
 
@@ -171,6 +240,12 @@ function AddItem() {
   const [lookupMessage, setLookupMessage] = useState("");
   const [showScanner, setShowScanner] = useState(false);
 
+  // Title and author search state.
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [searchResults, setSearchResults] = useState([]);
+  const [searchMessage, setSearchMessage] = useState("");
+
   useEffect(() => {
     if (!isEditing || loading) return;
 
@@ -207,6 +282,82 @@ function AddItem() {
       ...current,
       [name]: value,
     }));
+  }
+
+  async function handleSearch(event) {
+    event.preventDefault();
+
+    const query = searchQuery.trim();
+
+    if (!query) {
+      setSearchMessage("Enter a book title or author's name.");
+      return;
+    }
+
+    setSearching(true);
+    setSearchResults([]);
+    setSearchMessage("Searching for books...");
+
+    try {
+      let results = [];
+
+      try {
+        results = await searchGoogleBooks(query);
+      } catch (err) {
+        console.warn("Google Books search unavailable:", err);
+      }
+
+      if (results.length === 0) {
+        try {
+          results = await searchOpenLibrary(query);
+        } catch (err) {
+          console.warn("Open Library search unavailable:", err);
+        }
+      }
+
+      setSearchResults(results);
+
+      if (results.length === 0) {
+        setSearchMessage(
+          "No books found. Try another search or enter the details manually."
+        );
+      } else {
+        setSearchMessage(
+          `Found ${results.length} ${results.length === 1 ? "result" : "results"}. Select a book to fill in its details.`
+        );
+      }
+    } catch (err) {
+      console.error("Book search error:", err);
+      setSearchMessage(
+        "Book search isn't available right now. You can enter the details manually."
+      );
+    } finally {
+      setSearching(false);
+    }
+  }
+
+  function selectSearchResult(book) {
+    setForm((current) => ({
+      ...current,
+      title: book.title || current.title,
+      creator: book.creator || current.creator,
+      year: book.year || current.year,
+      isbn: book.isbn ? cleanISBN(book.isbn) : current.isbn,
+      publisher: book.publisher || current.publisher,
+      description: book.description || current.description,
+      cover: book.cover || current.cover,
+      genre: book.genre || current.genre,
+    }));
+
+    setSearchResults([]);
+    setSearchMessage(
+      "Book selected! Review the details below before saving."
+    );
+
+    window.scrollTo({
+      top: 0,
+      behavior: "smooth",
+    });
   }
 
   async function handleISBNLookup(isbnValue = form.isbn) {
@@ -387,12 +538,96 @@ function AddItem() {
         </div>
       </div>
 
-      <form className="add-item-form" onSubmit={handleSubmit}>
-        <section className="form-section">
+      {!isEditing && (
+        <section className="form-section book-search-section">
           <div className="form-section-heading">
             <span className="form-step">01</span>
             <div>
-              <h2>Find your book</h2>
+              <h2>Search for a book</h2>
+              <p>
+                Search by title or author to find a book and automatically
+                fill in its information.
+              </p>
+            </div>
+          </div>
+
+          <form className="book-search-form" onSubmit={handleSearch}>
+            <div className="book-search-input">
+              <Search size={18} />
+              <input
+                type="search"
+                value={searchQuery}
+                onChange={(event) => setSearchQuery(event.target.value)}
+                placeholder="Search by title or author..."
+                aria-label="Search books by title or author"
+              />
+            </div>
+
+            <button
+              type="submit"
+              className="lookup-button"
+              disabled={searching}
+            >
+              <Search size={16} />
+              {searching ? "Searching..." : "Search Books"}
+            </button>
+          </form>
+
+          {searchMessage && (
+            <p className="lookup-message" aria-live="polite">
+              {searchMessage}
+            </p>
+          )}
+
+          {searchResults.length > 0 && (
+            <div className="book-search-results">
+              {searchResults.map((book, index) => (
+                <button
+                  type="button"
+                  className="book-search-result"
+                  key={`${book.source}-${book.id}-${index}`}
+                  onClick={() => selectSearchResult(book)}
+                >
+                  <div className="book-search-cover">
+                    {book.cover ? (
+                      <img src={book.cover} alt={`${book.title} cover`} />
+                    ) : (
+                      <div className="book-search-cover-placeholder">
+                        <BookOpen size={24} />
+                      </div>
+                    )}
+                  </div>
+
+                  <div className="book-search-result-info">
+                    <strong>{book.title}</strong>
+                    <span>{book.creator || "Author unknown"}</span>
+                    <span>
+                      {book.year || "Year unknown"}
+                      {book.publisher ? ` · ${book.publisher}` : ""}
+                    </span>
+                    {book.isbn && (
+                      <span className="book-search-isbn">
+                        ISBN: {book.isbn}
+                      </span>
+                    )}
+                  </div>
+
+                  <span className="book-search-select">
+                    Select
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
+        </section>
+      )}
+
+      <form className="add-item-form" onSubmit={handleSubmit}>
+        <section className="form-section">
+          <div className="form-section-heading">
+            <span className="form-step">{isEditing ? "01" : "02"}</span>
+            <div>
+              <h2>Find your book by ISBN</h2>
               <p>
                 Enter the ISBN or scan the barcode to automatically fill in
                 the book details.
@@ -419,7 +654,7 @@ function AddItem() {
                 disabled={lookingUp}
               >
                 <Search size={16} />
-                {lookingUp ? "Searching..." : "Look Up Book"}
+                {lookingUp ? "Searching..." : "Look Up ISBN"}
               </button>
 
               <button
@@ -442,7 +677,7 @@ function AddItem() {
 
         <section className="form-section">
           <div className="form-section-heading">
-            <span className="form-step">02</span>
+            <span className="form-step">{isEditing ? "02" : "03"}</span>
             <div>
               <h2>Book details</h2>
               <p>Review the information and make any changes.</p>
