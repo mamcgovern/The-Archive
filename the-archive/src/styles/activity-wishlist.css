@@ -123,3 +123,243 @@
 .wishlist-owner {
   margin-top: 12px;
 }
+
+
+/* Shared Wantlist */
+
+.wishlist-format {
+  position: absolute;
+  right: 8px;
+  bottom: 8px;
+  padding: 5px 8px;
+  border-radius: 5px;
+  background: rgba(33, 15, 8, 0.85);
+  color: #fff;
+  font-size: 0.68rem;
+}
+
+.wishlist-cover {
+  position: relative;
+}
+
+.wishlist-actions {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin-top: 15px;
+}
+
+.wishlist-purchased-button {
+  display: inline-flex;
+  flex: 1;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  min-width: 0;
+  padding: 9px 10px;
+  border: 1px solid var(--primary);
+  border-radius: 7px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-size: 0.8rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.wishlist-purchased-button:hover {
+  background: var(--secondary);
+}
+
+.wishlist-remove-button {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.wishlist-remove-button:hover {
+  border-color: #b45b50;
+  color: #a33e35;
+  background: #f5e5e2;
+}
+
+.wishlist-purchased-button:disabled,
+.wishlist-remove-button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Add to Wantlist modal */
+
+.wishlist-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  overflow-y: auto;
+  background: rgba(33, 15, 8, 0.55);
+}
+
+.wishlist-modal {
+  width: 100%;
+  max-width: 650px;
+  max-height: 90vh;
+  padding: 28px;
+  overflow-y: auto;
+  border: 1px solid var(--border);
+  border-radius: 14px;
+  background: var(--background);
+  box-shadow: 0 20px 60px rgba(33, 15, 8, 0.2);
+}
+
+.wishlist-modal-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.wishlist-modal-header h2 {
+  margin: 5px 0;
+  color: var(--text);
+}
+
+.wishlist-modal-header p:last-child {
+  margin: 5px 0 0;
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.wishlist-modal-close {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex-shrink: 0;
+  width: 36px;
+  height: 36px;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--text);
+  cursor: pointer;
+}
+
+.wishlist-modal-close:hover {
+  background: var(--surface-hover);
+}
+
+.wishlist-modal .book-search-form {
+  display: flex;
+  gap: 10px;
+}
+
+.wishlist-modal-results {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 330px;
+  margin-top: 16px;
+  overflow-y: auto;
+}
+
+.wishlist-modal .book-search-result.selected {
+  border-color: var(--primary);
+  background: var(--surface-hover);
+}
+
+.wishlist-selected-book {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  margin-top: 22px;
+  padding: 18px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: var(--surface);
+}
+
+.wishlist-selected-heading {
+  display: flex;
+  flex-direction: column;
+  gap: 5px;
+  margin-bottom: 5px;
+}
+
+.wishlist-selected-heading strong {
+  color: var(--text);
+  font-size: 0.85rem;
+}
+
+.wishlist-selected-heading span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.wishlist-selected-book label {
+  color: var(--text);
+  font-size: 0.85rem;
+  font-weight: 600;
+}
+
+.wishlist-selected-book select {
+  width: 100%;
+  padding: 11px 12px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: var(--background);
+  color: var(--text);
+  font: inherit;
+}
+
+.wishlist-save-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  margin-top: 8px;
+  padding: 12px 18px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary);
+  color: #fff;
+  font: inherit;
+  font-weight: 600;
+  cursor: pointer;
+}
+
+.wishlist-save-button:hover {
+  background: var(--secondary);
+  border-color: var(--secondary);
+}
+
+.wishlist-save-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+@media (max-width: 600px) {
+  .wishlist-modal {
+    padding: 20px;
+  }
+
+  .wishlist-modal .book-search-form {
+    flex-direction: column;
+  }
+
+  .wishlist-modal .book-search-form .lookup-button {
+    justify-content: center;
+  }
+}

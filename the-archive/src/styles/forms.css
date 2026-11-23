@@ -520,3 +520,9 @@
   }
 }
 
+.form-field small {
+  display: block;
+  margin-top: 5px;
+  color: var(--muted);
+  font-size: 0.75rem;
+}

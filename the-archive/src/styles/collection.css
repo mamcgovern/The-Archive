@@ -199,3 +199,45 @@
   border-color: var(--primary);
 }
 
+
+.goodreads-rating {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 5px 8px;
+  margin-top: 12px;
+  padding: 10px 11px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--surface);
+}
+
+.goodreads-rating-score {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: var(--primary);
+  font-size: 0.9rem;
+}
+
+.goodreads-rating-score strong {
+  color: var(--text);
+  font-weight: 700;
+}
+
+.goodreads-rating-score span {
+  color: var(--muted);
+  font-size: 0.75rem;
+}
+
+.goodreads-rating-label {
+  color: var(--text);
+  font-size: 0.78rem;
+  font-weight: 600;
+}
+
+.goodreads-rating-count {
+  width: 100%;
+  color: var(--muted);
+  font-size: 0.72rem;
+}

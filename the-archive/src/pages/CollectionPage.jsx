@@ -8,6 +8,7 @@ import {
   MapPin,
   Star,
   Pencil,
+  BookOpen,
 } from "lucide-react";
 
 function CollectionPage({
@@ -56,6 +57,10 @@ function CollectionPage({
         return dateB - dateA;
       });
   }, [items, search, filter]);
+
+  function formatRatingsCount(count) {
+    return new Intl.NumberFormat("en-US").format(count);
+  }
 
   return (
     <div className="collection-page">
@@ -155,6 +160,31 @@ function CollectionPage({
                     </span>
                   )}
                 </div>
+
+                {item.goodreadsRating != null && (
+                  <div className="goodreads-rating">
+                    <div className="goodreads-rating-score">
+                      <BookOpen size={14} />
+                      <strong>
+                        {Number(item.goodreadsRating).toFixed(2)}
+                      </strong>
+                      <span>/ 5</span>
+                    </div>
+
+                    <span className="goodreads-rating-label">
+                      Goodreads
+                    </span>
+
+                    {item.goodreadsRatingsCount != null && (
+                      <span className="goodreads-rating-count">
+                        {formatRatingsCount(
+                          item.goodreadsRatingsCount
+                        )}{" "}
+                        ratings
+                      </span>
+                    )}
+                  </div>
+                )}
 
                 {item.location && (
                   <div className="storage-location">

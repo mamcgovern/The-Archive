@@ -23,6 +23,8 @@ const initialForm = {
   location: "",
   cover: "",
   notes: "",
+  goodreadsRating: "",
+  goodreadsRatingsCount: "",
 };
 
 function cleanISBN(value) {
@@ -272,6 +274,14 @@ function AddItem() {
       location: book.location || "",
       cover: book.cover || "",
       notes: book.notes || "",
+      goodreadsRating:
+        book.goodreadsRating != null
+          ? String(book.goodreadsRating)
+          : "",
+      goodreadsRatingsCount:
+        book.goodreadsRatingsCount != null
+          ? String(book.goodreadsRatingsCount)
+          : "",
     });
   }, [editId, isEditing, items, loading]);
 
@@ -440,6 +450,28 @@ function AddItem() {
       return;
     }
 
+    const goodreadsRating = form.goodreadsRating.trim();
+    const goodreadsRatingsCount = form.goodreadsRatingsCount.trim();
+
+    if (
+      goodreadsRating !== "" &&
+      (!Number.isFinite(Number(goodreadsRating)) ||
+        Number(goodreadsRating) < 0 ||
+        Number(goodreadsRating) > 5)
+    ) {
+      setError("Goodreads ratings must be between 0 and 5.");
+      return;
+    }
+
+    if (
+      goodreadsRatingsCount !== "" &&
+      (!Number.isInteger(Number(goodreadsRatingsCount)) ||
+        Number(goodreadsRatingsCount) < 0)
+    ) {
+      setError("Goodreads ratings count must be a whole number.");
+      return;
+    }
+
     setError("");
     setSubmitting(true);
 
@@ -457,6 +489,12 @@ function AddItem() {
         location: form.location.trim(),
         cover: form.cover.trim(),
         notes: form.notes.trim(),
+        goodreadsRating:
+          goodreadsRating !== "" ? Number(goodreadsRating) : null,
+        goodreadsRatingsCount:
+          goodreadsRatingsCount !== ""
+            ? Number(goodreadsRatingsCount)
+            : null,
       };
 
       if (isEditing) {
@@ -823,6 +861,56 @@ function AddItem() {
                 placeholder="Anything else you want to remember?"
                 rows="4"
               />
+            </div>
+          </div>
+        </section>
+
+        <section className="form-section">
+          <div className="form-section-heading">
+            <span className="form-step">{isEditing ? "03" : "04"}</span>
+            <div>
+              <h2>Goodreads information</h2>
+              <p>
+                Enter the Goodreads community rating. These numbers are
+                separate from your personal ratings and Nick's ratings.
+              </p>
+            </div>
+          </div>
+
+          <div className="form-grid">
+            <div className="form-field">
+              <label htmlFor="goodreadsRating">
+                Goodreads Community Rating
+              </label>
+              <input
+                id="goodreadsRating"
+                name="goodreadsRating"
+                type="number"
+                min="0"
+                max="5"
+                step="0.01"
+                value={form.goodreadsRating}
+                onChange={handleChange}
+                placeholder="e.g. 4.32"
+              />
+              <small>Community rating out of 5</small>
+            </div>
+
+            <div className="form-field">
+              <label htmlFor="goodreadsRatingsCount">
+                Number of Goodreads Ratings
+              </label>
+              <input
+                id="goodreadsRatingsCount"
+                name="goodreadsRatingsCount"
+                type="number"
+                min="0"
+                step="1"
+                value={form.goodreadsRatingsCount}
+                onChange={handleChange}
+                placeholder="e.g. 125000"
+              />
+              <small>Total number of community ratings</small>
             </div>
           </div>
         </section>
