@@ -1,4 +1,3 @@
-
 import { useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import {
@@ -11,6 +10,7 @@ import {
   Save,
   CalendarDays,
   Pencil,
+  Search,
 } from "lucide-react";
 import {
   addDoc,
@@ -26,6 +26,10 @@ import {
 import { db } from "../firebase/config";
 import { useAuth } from "../contexts/AuthContext";
 import { useCollection } from "../contexts/CollectionContext";
+import {
+  searchBooks,
+  lookupBook,
+} from "../services/bookCatalog";
 
 const HOUSEHOLD_ID = "maddie-nick";
 
@@ -61,9 +65,16 @@ function Activity() {
   const [showAddForm, setShowAddForm] = useState(false);
   const [addType, setAddType] = useState("library");
   const [selectedBook, setSelectedBook] = useState("");
+
   const [borrowedTitle, setBorrowedTitle] = useState("");
   const [borrowedCreator, setBorrowedCreator] = useState("");
   const [borrowedFormat, setBorrowedFormat] = useState("Physical Copy");
+  const [borrowedBook, setBorrowedBook] = useState(null);
+  const [borrowedSearchQuery, setBorrowedSearchQuery] = useState("");
+  const [borrowedSearchResults, setBorrowedSearchResults] = useState([]);
+  const [searchingBorrowed, setSearchingBorrowed] = useState(false);
+  const [borrowedSearchMessage, setBorrowedSearchMessage] = useState("");
+
   const [addStatus, setAddStatus] = useState("Want to Read");
   const [savingNew, setSavingNew] = useState(false);
   const [addError, setAddError] = useState("");
@@ -167,8 +178,66 @@ function Activity() {
     setBorrowedTitle("");
     setBorrowedCreator("");
     setBorrowedFormat("Physical Copy");
+    setBorrowedBook(null);
+    setBorrowedSearchQuery("");
+    setBorrowedSearchResults([]);
+    setBorrowedSearchMessage("");
     setAddStatus("Want to Read");
     setAddError("");
+  }
+
+  async function handleBorrowedSearch() {
+    const searchValue = borrowedSearchQuery.trim();
+
+    if (!searchValue) {
+      setBorrowedSearchMessage("Enter a title, author, or ISBN.");
+      return;
+    }
+
+    setSearchingBorrowed(true);
+    setBorrowedSearchResults([]);
+    setBorrowedBook(null);
+    setBorrowedSearchMessage("Searching your catalog and book databases...");
+
+    try {
+      const cleanedISBN = searchValue.replace(/[\s-]/g, "");
+      const looksLikeISBN = /^(?:\d{10}|\d{13}|\d{9}X)$/i.test(cleanedISBN);
+
+      let results = [];
+
+      if (looksLikeISBN) {
+        const book = await lookupBook(cleanedISBN);
+        if (book) results = [book];
+      } else {
+        results = await searchBooks(searchValue);
+      }
+
+      setBorrowedSearchResults(results);
+
+      if (results.length === 0) {
+        setBorrowedSearchMessage(
+          "No books found. You can still enter the book details manually below."
+        );
+      } else {
+        setBorrowedSearchMessage(
+          `Found ${results.length} ${results.length === 1 ? "book" : "books"}. Select the correct edition.`
+        );
+      }
+    } catch (err) {
+      console.error("Borrowed book search error:", err);
+      setBorrowedSearchMessage(
+        "Search is unavailable right now. You can enter the details manually."
+      );
+    } finally {
+      setSearchingBorrowed(false);
+    }
+  }
+
+  function handleSelectBorrowedBook(book) {
+    setBorrowedBook(book);
+    setBorrowedTitle(book.title || "");
+    setBorrowedCreator(book.creator || "");
+    setBorrowedSearchMessage("Book selected. You can adjust the details below.");
   }
 
   async function handleAddEntry(event) {
@@ -213,10 +282,18 @@ function Activity() {
         bookId: null,
         title: borrowedTitle.trim(),
         creator: borrowedCreator.trim(),
-        cover: "",
+        cover: borrowedBook?.cover || "",
         format: borrowedFormat,
-        googleBooksRating: null,
-        googleBooksRatingsCount: null,
+        isbn: borrowedBook?.isbn || "",
+        year: borrowedBook?.year || "",
+        publisher: borrowedBook?.publisher || "",
+        genre: borrowedBook?.genre || "",
+        description: borrowedBook?.description || "",
+        googleBooksRating: borrowedBook?.googleBooksRating ?? null,
+        googleBooksRatingsCount:
+          borrowedBook?.googleBooksRatingsCount ?? null,
+        googleBooksId: borrowedBook?.googleBooksId || "",
+        openLibraryId: borrowedBook?.openLibraryId || "",
         isBorrowed: true,
       };
     }
@@ -468,26 +545,132 @@ function Activity() {
             </>
           ) : (
             <>
-              <label>
-                Book title
-                <input
-                  type="text"
-                  value={borrowedTitle}
-                  onChange={(event) => setBorrowedTitle(event.target.value)}
-                  placeholder="Enter the book title"
-                  required
-                />
-              </label>
+              <div className="borrowed-book-search">
+                <label htmlFor="borrowed-book-search">
+                  Search for a borrowed book
+                </label>
 
-              <label>
-                Author
-                <input
-                  type="text"
-                  value={borrowedCreator}
-                  onChange={(event) => setBorrowedCreator(event.target.value)}
-                  placeholder="Enter the author"
-                />
-              </label>
+                <div className="borrowed-search-form">
+                  <div className="borrowed-search-input">
+                    <Search size={17} />
+                    <input
+                      id="borrowed-book-search"
+                      type="search"
+                      value={borrowedSearchQuery}
+                      onChange={(event) =>
+                        setBorrowedSearchQuery(event.target.value)
+                      }
+                      onKeyDown={(event) => {
+                        if (event.key === "Enter") {
+                          event.preventDefault();
+                          handleBorrowedSearch();
+                        }
+                      }}
+                      placeholder="Title, author, or ISBN..."
+                    />
+                  </div>
+
+                  <button
+                    type="button"
+                    className="lookup-button"
+                    disabled={searchingBorrowed}
+                    onClick={handleBorrowedSearch}
+                  >
+                    {searchingBorrowed ? "Searching..." : "Search"}
+                  </button>
+                </div>
+
+                {borrowedSearchMessage && (
+                  <p className="reading-form-message" aria-live="polite">
+                    {borrowedSearchMessage}
+                  </p>
+                )}
+
+                {borrowedSearchResults.length > 0 && (
+                  <div className="borrowed-search-results">
+                    {borrowedSearchResults.map((book, index) => (
+                      <button
+                        type="button"
+                        key={`${book.id || book.isbn}-${index}`}
+                        className={`borrowed-search-result ${
+                          borrowedBook?.id === book.id ? "selected" : ""
+                        }`}
+                        onClick={() => handleSelectBorrowedBook(book)}
+                      >
+                        <div className="borrowed-result-cover">
+                          {book.cover ? (
+                            <img src={book.cover} alt="" />
+                          ) : (
+                            <BookOpen size={23} />
+                          )}
+                        </div>
+
+                        <div className="borrowed-result-info">
+                          <strong>{book.title}</strong>
+                          <span>{book.creator || "Author unknown"}</span>
+                          <span>
+                            {book.year || "Year unknown"}
+                            {book.publisher ? ` · ${book.publisher}` : ""}
+                          </span>
+                          {book.googleBooksRating != null && (
+                            <span>
+                              Community: {book.googleBooksRating}/5
+                              {book.googleBooksRatingsCount != null &&
+                                ` · ${Number(book.googleBooksRatingsCount).toLocaleString()} ratings`}
+                            </span>
+                          )}
+                        </div>
+
+                        <span className="borrowed-result-select">
+                          {borrowedBook?.id === book.id
+                            ? "Selected"
+                            : "Select"}
+                        </span>
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+
+              {borrowedBook && (
+                <div className="borrowed-selected-book">
+                  <strong>Selected book</strong>
+                  <span>{borrowedBook.title}</span>
+                  <span>{borrowedBook.creator || "Author unknown"}</span>
+                  {borrowedBook.isbn && (
+                    <span>ISBN: {borrowedBook.isbn}</span>
+                  )}
+                </div>
+              )}
+
+              <div className="borrowed-manual-fields">
+                <p>
+                  {borrowedBook
+                    ? "You can adjust the title or author if needed."
+                    : "No search result? You can enter the details manually."}
+                </p>
+
+                <label>
+                  Book title
+                  <input
+                    type="text"
+                    value={borrowedTitle}
+                    onChange={(event) => setBorrowedTitle(event.target.value)}
+                    placeholder="Enter the book title"
+                    required
+                  />
+                </label>
+
+                <label>
+                  Author
+                  <input
+                    type="text"
+                    value={borrowedCreator}
+                    onChange={(event) => setBorrowedCreator(event.target.value)}
+                    placeholder="Enter the author"
+                  />
+                </label>
+              </div>
 
               <label>
                 Format
