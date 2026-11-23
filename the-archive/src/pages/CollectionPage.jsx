@@ -171,10 +171,6 @@ function CollectionPage({
                       <span>/ 5</span>
                     </div>
 
-                    <span className="goodreads-rating-label">
-                      Goodreads
-                    </span>
-
                     {item.goodreadsRatingsCount != null && (
                       <span className="goodreads-rating-count">
                         {formatRatingsCount(

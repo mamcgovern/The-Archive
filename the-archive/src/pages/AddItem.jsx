@@ -23,8 +23,8 @@ const initialForm = {
   location: "",
   cover: "",
   notes: "",
-  goodreadsRating: "",
-  goodreadsRatingsCount: "",
+  googleBooksRating: "",
+  googleBooksRatingsCount: "",
 };
 
 function cleanISBN(value) {
@@ -106,6 +106,8 @@ async function searchGoogleBooks(query) {
       cover: book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
       genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
       isbn: getISBN(book.industryIdentifiers),
+      googleBooksRating: book.averageRating ?? null,
+      googleBooksRatingsCount: book.ratingsCount ?? null,
     };
   });
 }
@@ -135,6 +137,8 @@ async function searchOpenLibrary(query) {
       : "",
     genre: book.subject?.[0] || "",
     isbn: book.isbn?.[0] || "",
+    googleBooksRating: null,
+    googleBooksRatingsCount: null,
   }));
 }
 
@@ -148,8 +152,14 @@ async function lookupGoogleBooks(isbn) {
   }
 
   const data = await response.json();
-  const book = data.items?.[0]?.volumeInfo;
+  const results = data.items || [];
 
+  const selectedResult =
+    results.find((item) => item.volumeInfo?.averageRating != null) ||
+    results[0];
+
+  const book = selectedResult?.volumeInfo;
+  
   if (!book) return null;
 
   return {
@@ -160,6 +170,8 @@ async function lookupGoogleBooks(isbn) {
     description: book.description || "",
     cover: book.imageLinks?.thumbnail?.replace(/^http:/, "https:") || "",
     genre: book.categories?.[0]?.split("/").pop()?.trim() || "",
+    googleBooksRating: book.averageRating ?? null,
+    googleBooksRatingsCount: book.ratingsCount ?? null,
   };
 }
 
@@ -193,6 +205,8 @@ async function lookupOpenLibrary(isbn) {
     description,
     cover: book.cover?.large || book.cover?.medium || book.cover?.small || "",
     genre: subjects[0]?.name || subjects[0] || "",
+    googleBooksRating: null,
+    googleBooksRatingsCount: null,
   };
 }
 
@@ -242,7 +256,6 @@ function AddItem() {
   const [lookupMessage, setLookupMessage] = useState("");
   const [showScanner, setShowScanner] = useState(false);
 
-  // Title and author search state.
   const [searchQuery, setSearchQuery] = useState("");
   const [searching, setSearching] = useState(false);
   const [searchResults, setSearchResults] = useState([]);
@@ -274,14 +287,18 @@ function AddItem() {
       location: book.location || "",
       cover: book.cover || "",
       notes: book.notes || "",
-      goodreadsRating:
-        book.goodreadsRating != null
-          ? String(book.goodreadsRating)
-          : "",
-      goodreadsRatingsCount:
-        book.goodreadsRatingsCount != null
-          ? String(book.goodreadsRatingsCount)
-          : "",
+      googleBooksRating:
+        book.googleBooksRating != null
+          ? String(book.googleBooksRating)
+          : book.goodreadsRating != null
+            ? String(book.goodreadsRating)
+            : "",
+      googleBooksRatingsCount:
+        book.googleBooksRatingsCount != null
+          ? String(book.googleBooksRatingsCount)
+          : book.goodreadsRatingsCount != null
+            ? String(book.goodreadsRatingsCount)
+            : "",
     });
   }, [editId, isEditing, items, loading]);
 
@@ -357,6 +374,14 @@ function AddItem() {
       description: book.description || current.description,
       cover: book.cover || current.cover,
       genre: book.genre || current.genre,
+      googleBooksRating:
+        book.googleBooksRating != null
+          ? String(book.googleBooksRating)
+          : current.googleBooksRating,
+      googleBooksRatingsCount:
+        book.googleBooksRatingsCount != null
+          ? String(book.googleBooksRatingsCount)
+          : current.googleBooksRatingsCount,
     }));
 
     setSearchResults([]);
@@ -406,6 +431,14 @@ function AddItem() {
         description: book.description || current.description,
         cover: book.cover || current.cover,
         genre: book.genre || current.genre,
+        googleBooksRating:
+          book.googleBooksRating != null
+            ? String(book.googleBooksRating)
+            : current.googleBooksRating,
+        googleBooksRatingsCount:
+          book.googleBooksRatingsCount != null
+            ? String(book.googleBooksRatingsCount)
+            : current.googleBooksRatingsCount,
       }));
 
       setLookupMessage(
@@ -450,25 +483,25 @@ function AddItem() {
       return;
     }
 
-    const goodreadsRating = form.goodreadsRating.trim();
-    const goodreadsRatingsCount = form.goodreadsRatingsCount.trim();
+    const googleBooksRating = form.googleBooksRating.trim();
+    const googleBooksRatingsCount = form.googleBooksRatingsCount.trim();
 
     if (
-      goodreadsRating !== "" &&
-      (!Number.isFinite(Number(goodreadsRating)) ||
-        Number(goodreadsRating) < 0 ||
-        Number(goodreadsRating) > 5)
+      googleBooksRating !== "" &&
+      (!Number.isFinite(Number(googleBooksRating)) ||
+        Number(googleBooksRating) < 0 ||
+        Number(googleBooksRating) > 5)
     ) {
-      setError("Goodreads ratings must be between 0 and 5.");
+      setError("Community ratings must be between 0 and 5.");
       return;
     }
 
     if (
-      goodreadsRatingsCount !== "" &&
-      (!Number.isInteger(Number(goodreadsRatingsCount)) ||
-        Number(goodreadsRatingsCount) < 0)
+      googleBooksRatingsCount !== "" &&
+      (!Number.isInteger(Number(googleBooksRatingsCount)) ||
+        Number(googleBooksRatingsCount) < 0)
     ) {
-      setError("Goodreads ratings count must be a whole number.");
+      setError("Ratings count must be a whole number.");
       return;
     }
 
@@ -489,11 +522,11 @@ function AddItem() {
         location: form.location.trim(),
         cover: form.cover.trim(),
         notes: form.notes.trim(),
-        goodreadsRating:
-          goodreadsRating !== "" ? Number(goodreadsRating) : null,
-        goodreadsRatingsCount:
-          goodreadsRatingsCount !== ""
-            ? Number(goodreadsRatingsCount)
+        googleBooksRating:
+          googleBooksRating !== "" ? Number(googleBooksRating) : null,
+        googleBooksRatingsCount:
+          googleBooksRatingsCount !== ""
+            ? Number(googleBooksRatingsCount)
             : null,
       };
 
@@ -646,6 +679,13 @@ function AddItem() {
                     {book.isbn && (
                       <span className="book-search-isbn">
                         ISBN: {book.isbn}
+                      </span>
+                    )}
+                    {book.googleBooksRating != null && (
+                      <span>
+                        Community rating: {book.googleBooksRating}/5
+                        {book.googleBooksRatingsCount != null &&
+                          ` · ${Number(book.googleBooksRatingsCount).toLocaleString()} ratings`}
                       </span>
                     )}
                   </div>
@@ -869,44 +909,44 @@ function AddItem() {
           <div className="form-section-heading">
             <span className="form-step">{isEditing ? "03" : "04"}</span>
             <div>
-              <h2>Goodreads information</h2>
+              <h2>Community Rating</h2>
               <p>
-                Enter the Goodreads community rating. These numbers are
-                separate from your personal ratings and Nick's ratings.
+                Google Books ratings are filled in automatically when
+                available. You can also enter or change them manually.
               </p>
             </div>
           </div>
 
           <div className="form-grid">
             <div className="form-field">
-              <label htmlFor="goodreadsRating">
-                Goodreads Community Rating
+              <label htmlFor="googleBooksRating">
+                Community Rating
               </label>
               <input
-                id="goodreadsRating"
-                name="goodreadsRating"
+                id="googleBooksRating"
+                name="googleBooksRating"
                 type="number"
                 min="0"
                 max="5"
                 step="0.01"
-                value={form.goodreadsRating}
+                value={form.googleBooksRating}
                 onChange={handleChange}
                 placeholder="e.g. 4.32"
               />
-              <small>Community rating out of 5</small>
+              <small>Average rating out of 5</small>
             </div>
 
             <div className="form-field">
-              <label htmlFor="goodreadsRatingsCount">
-                Number of Goodreads Ratings
+              <label htmlFor="googleBooksRatingsCount">
+                Number of Ratings
               </label>
               <input
-                id="goodreadsRatingsCount"
-                name="goodreadsRatingsCount"
+                id="googleBooksRatingsCount"
+                name="googleBooksRatingsCount"
                 type="number"
                 min="0"
                 step="1"
-                value={form.goodreadsRatingsCount}
+                value={form.googleBooksRatingsCount}
                 onChange={handleChange}
                 placeholder="e.g. 125000"
               />

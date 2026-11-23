@@ -37,7 +37,7 @@ function AppRoutes() {
         <Route element={<Layout />}>
           <Route path="/" element={<Dashboard />} />
           <Route path="/books" element={<Books />} />
-          <Route path="/activity/reading" element={<Activity />} />
+          <Route path="/activity/:type" element={<Activity />} />
           <Route path="/wishlist" element={<Wishlist />} />
           <Route path="/add" element={<AddItem />} />
 
@@ -45,7 +45,6 @@ function AppRoutes() {
           <Route path="/movies" element={<Navigate to="/" replace />} />
           <Route path="/video-games" element={<Navigate to="/" replace />} />
           <Route path="/board-games" element={<Navigate to="/" replace />} />
-          <Route path="/activity/:type" element={<Navigate to="/activity/reading" replace />} />
 
           <Route path="*" element={<Navigate to="/" replace />} />
         </Route>
