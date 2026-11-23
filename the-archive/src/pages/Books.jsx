@@ -25,8 +25,7 @@ function Books() {
         "Reading",
         "Finished",
         "Want to Read",
-        "Paperback",
-        "Hardcover",
+        "Physical Copy",
         "Audiobook",
       ]}
     />
