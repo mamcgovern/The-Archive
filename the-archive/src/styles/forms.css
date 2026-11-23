@@ -1,0 +1,377 @@
+
+/* ADD ITEM FORM */
+.back-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 7px;
+  padding: 0;
+  margin-bottom: 25px;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.back-link:hover {
+  color: var(--primary);
+}
+
+.add-item-form {
+  max-width: 850px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  overflow: hidden;
+}
+
+.form-section {
+  padding: 28px 30px;
+  border-bottom: 1px solid var(--border);
+}
+
+.form-section-heading {
+  display: flex;
+  align-items: flex-start;
+  gap: 15px;
+  margin-bottom: 22px;
+}
+
+.form-step {
+  color: var(--primary);
+  font-family: "Playfair Display", serif;
+  font-size: 20px;
+}
+
+.form-section-heading h2 {
+  font-family: "Playfair Display", serif;
+  font-size: 20px;
+  font-weight: 500;
+  margin: 0 0 5px;
+}
+
+.form-section-heading p {
+  color: var(--muted);
+  font-size: 11px;
+  margin: 0;
+}
+
+.category-selector {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 10px;
+}
+
+.category-option {
+  min-height: 85px;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 9px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: var(--background);
+  color: var(--muted);
+  font-size: 10px;
+  transition: border-color 0.2s, background 0.2s;
+}
+
+.category-option.selected {
+  border-color: var(--primary);
+  background: #F0E6DB;
+  color: var(--secondary);
+}
+
+.form-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 18px;
+}
+
+.form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  min-width: 0;
+}
+
+.form-field.full-width {
+  grid-column: 1 / -1;
+}
+
+.form-field > span {
+  color: var(--text);
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.form-field > span strong {
+  color: var(--primary);
+}
+
+.form-field input,
+.form-field select,
+.form-field textarea {
+  width: 100%;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  background: white;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.form-field textarea {
+  resize: vertical;
+}
+
+.form-field input:focus,
+.form-field select:focus,
+.form-field textarea:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(161, 102, 60, 0.12);
+}
+
+.form-error {
+  padding: 0 30px;
+  color: #A33E2B;
+  font-size: 11px;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 10px;
+  padding: 20px 30px;
+  background: #F1EEE6;
+}
+
+.cancel-button {
+  padding: 0 16px;
+  border: 1px solid var(--border);
+  border-radius: 7px;
+  background: transparent;
+  color: var(--text);
+  font-size: 11px;
+}
+
+
+/* ISBN LOOKUP */
+.isbn-lookup {
+  display: flex;
+  flex-direction: column;
+  gap: 9px;
+}
+
+.isbn-lookup > label {
+  font-size: 11px;
+  font-weight: 600;
+}
+
+.isbn-input-row {
+  display: flex;
+  align-items: stretch;
+  gap: 8px;
+}
+
+.isbn-input-row input {
+  flex: 1;
+  min-width: 0;
+  min-height: 42px;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  outline: none;
+  background: white;
+  color: var(--text);
+  font-size: 11px;
+}
+
+.isbn-input-row input:focus {
+  border-color: var(--primary);
+  box-shadow: 0 0 0 2px rgba(161, 102, 60, 0.12);
+}
+
+.lookup-button,
+.scan-button {
+  min-height: 42px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  padding: 0 13px;
+  border: 1px solid var(--primary);
+  border-radius: 6px;
+  background: var(--primary);
+  color: white;
+  font-size: 10px;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.scan-button {
+  border-color: var(--border);
+  background: var(--surface);
+  color: var(--text);
+}
+
+.lookup-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.lookup-message {
+  margin: 2px 0 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+}
+
+/* BARCODE SCANNER */
+.scanner-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 20px;
+  background: rgba(33, 15, 8, 0.7);
+}
+
+.scanner-modal {
+  width: 100%;
+  max-width: 520px;
+  padding: 25px;
+  border-radius: 12px;
+  background: var(--surface);
+}
+
+.scanner-heading {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 15px;
+  margin-bottom: 20px;
+}
+
+.scanner-heading .eyebrow {
+  margin: 0 0 6px;
+}
+
+.scanner-heading h2 {
+  margin: 0;
+  font-family: "Playfair Display", serif;
+  font-size: 23px;
+  font-weight: 500;
+}
+
+.scanner-close {
+  width: 34px;
+  height: 34px;
+  display: grid;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: transparent;
+  color: var(--text);
+}
+
+.scanner-video-container {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border-radius: 8px;
+  background: #210F08;
+  aspect-ratio: 4 / 3;
+}
+
+.scanner-video {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.scanner-guide {
+  position: absolute;
+  top: 50%;
+  left: 10%;
+  width: 80%;
+  height: 32%;
+  transform: translateY(-50%);
+  border: 2px solid var(--accent);
+  border-radius: 5px;
+  pointer-events: none;
+}
+
+.scanner-instructions,
+.scanner-error {
+  margin: 15px 0;
+  color: var(--muted);
+  font-size: 11px;
+  line-height: 1.5;
+  text-align: center;
+}
+
+.scanner-error {
+  color: #A33E2B;
+}
+
+.scanner-cancel {
+  width: 100%;
+  min-height: 40px;
+}
+
+
+.delete-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 7px;
+  margin-right: auto;
+  padding: 11px 18px;
+  border: 1px solid #b45b50;
+  border-radius: 8px;
+  background: transparent;
+  color: #a33e35;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.delete-button:hover {
+  background: #f5e5e2;
+}
+
+.delete-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+
+.form-actions .primary-button {
+  padding: 11px 22px;
+  border: 1px solid var(--primary);
+  border-radius: 8px;
+  background: var(--primary);
+  color: #ffffff;
+  font: inherit;
+  font-size: 0.9rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease, border-color 0.2s ease;
+}
+
+.form-actions .primary-button:hover {
+  background: var(--secondary);
+  border-color: var(--secondary);
+}
+
+.form-actions .primary-button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}

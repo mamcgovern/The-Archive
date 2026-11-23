@@ -1,24 +1,60 @@
 
 import { useMemo, useState } from "react";
-import { Search, SlidersHorizontal, Plus, MapPin, Star } from "lucide-react";
+import { Link } from "react-router-dom";
+import {
+  Search,
+  SlidersHorizontal,
+  Plus,
+  MapPin,
+  Star,
+  Pencil,
+} from "lucide-react";
 
-function CollectionPage({ title, description, items, filters = [] }) {
+function CollectionPage({
+  title,
+  description,
+  items = [],
+  filters = [],
+}) {
   const [search, setSearch] = useState("");
   const [filter, setFilter] = useState("All");
 
   const filteredItems = useMemo(() => {
-    return items.filter((item) => {
-      const matchesSearch = `${item.title} ${item.creator} ${item.format}`
-        .toLowerCase()
-        .includes(search.toLowerCase());
+    return [...items]
+      .filter((item) => {
+        const searchableText = [
+          item.title,
+          item.creator,
+          item.format,
+          item.owner,
+          item.location,
+        ]
+          .filter(Boolean)
+          .join(" ")
+          .toLowerCase();
 
-      const matchesFilter =
-        filter === "All" ||
-        item.status === filter ||
-        item.format === filter;
+        const matchesSearch = searchableText.includes(
+          search.toLowerCase()
+        );
 
-      return matchesSearch && matchesFilter;
-    });
+        const matchesFilter =
+          filter === "All" ||
+          item.status === filter ||
+          item.format === filter;
+
+        return matchesSearch && matchesFilter;
+      })
+      .sort((a, b) => {
+        const dateA =
+          a.createdAt?.toDate?.() ||
+          (a.dateAdded ? new Date(a.dateAdded) : new Date(0));
+
+        const dateB =
+          b.createdAt?.toDate?.() ||
+          (b.dateAdded ? new Date(b.dateAdded) : new Date(0));
+
+        return dateB - dateA;
+      });
   }, [items, search, filter]);
 
   return (
@@ -29,10 +65,11 @@ function CollectionPage({ title, description, items, filters = [] }) {
           <h1>{title}</h1>
           <p>{description}</p>
         </div>
-        <button className="add-button">
+
+        <Link to="/add" className="add-button">
           <Plus size={17} />
-          Add item
-        </button>
+          Add Book
+        </Link>
       </div>
 
       <div className="collection-toolbar">
@@ -48,17 +85,27 @@ function CollectionPage({ title, description, items, filters = [] }) {
 
         <div className="filter-control">
           <SlidersHorizontal size={16} />
-          <select value={filter} onChange={(event) => setFilter(event.target.value)}>
+          <select
+            value={filter}
+            onChange={(event) => setFilter(event.target.value)}
+          >
             <option value="All">All items</option>
-            {filters.map((option) => (
-              <option key={option} value={option}>{option}</option>
-            ))}
+            {filters
+              .filter((option) => option !== "All")
+              .map((option) => (
+                <option key={option} value={option}>
+                  {option}
+                </option>
+              ))}
           </select>
         </div>
       </div>
 
       <div className="collection-summary">
-        <span><strong>{filteredItems.length}</strong> items</span>
+        <span>
+          <strong>{filteredItems.length}</strong>{" "}
+          {filteredItems.length === 1 ? "item" : "items"}
+        </span>
         <span>Sorted by recently added</span>
       </div>
 
@@ -68,35 +115,61 @@ function CollectionPage({ title, description, items, filters = [] }) {
             <article className="collection-card" key={item.id}>
               <div className="collection-cover">
                 {item.cover ? (
-                  <img src={item.cover} alt={`${item.title} cover`} />
+                  <img
+                    src={item.cover}
+                    alt={`${item.title} cover`}
+                  />
                 ) : (
-                  <div className="cover-placeholder">{item.title}</div>
+                  <div className="cover-placeholder">
+                    {item.title}
+                  </div>
                 )}
-                <span className="cover-format">{item.format}</span>
+
+                {item.format && (
+                  <span className="cover-format">
+                    {item.format}
+                  </span>
+                )}
               </div>
 
               <div className="collection-card-info">
                 <h3>{item.title}</h3>
-                <p>{item.creator}</p>
+                <p>{item.creator || "Creator unknown"}</p>
+
                 <div className="collection-card-meta">
-                  <span>{item.year}</span>
-                  <span>{item.owner}</span>
+                  <span>{item.year || "Year unknown"}</span>
+                  <span>{item.owner || "Shared"}</span>
                 </div>
+
                 <div className="collection-card-footer">
-                  <span className="status-tag">{item.status}</span>
-                  {item.rating && (
+                  {item.status && (
+                    <span className="status-tag">
+                      {item.status}
+                    </span>
+                  )}
+
+                  {item.rating != null && (
                     <span className="rating">
                       <Star size={13} fill="currentColor" />
                       {item.rating}
                     </span>
                   )}
                 </div>
+
                 {item.location && (
                   <div className="storage-location">
                     <MapPin size={12} />
                     {item.location}
                   </div>
                 )}
+
+                <Link
+                  to={`/add?edit=${encodeURIComponent(item.id)}`}
+                  className="edit-item-button"
+                >
+                  <Pencil size={14} />
+                  Edit book
+                </Link>
               </div>
             </article>
           ))}
@@ -105,7 +178,18 @@ function CollectionPage({ title, description, items, filters = [] }) {
         <div className="empty-collection">
           <Search size={28} />
           <h3>No items found</h3>
-          <p>Try a different search or filter.</p>
+          <p>
+            {search || filter !== "All"
+              ? "Try a different search or filter."
+              : `You haven't added any ${title.toLowerCase()} yet.`}
+          </p>
+
+          {!search && filter === "All" && (
+            <Link to="/add" className="add-button">
+              <Plus size={17} />
+              Add your first book
+            </Link>
+          )}
         </div>
       )}
     </div>

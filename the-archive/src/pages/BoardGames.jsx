@@ -1,16 +1,33 @@
 
 import CollectionPage from "./CollectionPage";
-import { collectionItems } from "../data/sampleData";
+import { useCollection } from "../contexts/CollectionContext";
 
 function BoardGames() {
-  const items = collectionItems.filter((item) => item.category === "Board Games");
+  const { items, loading, error } = useCollection();
+
+  const games = items.filter(
+    (item) => item.category === "Board Games"
+  );
+
+  if (loading) {
+    return <div className="page-content">Loading your board games...</div>;
+  }
+
+  if (error) {
+    return <div className="page-content">{error}</div>;
+  }
 
   return (
     <CollectionPage
       title="Board Games"
-      description="Your tabletop collection, ready for game night."
-      items={items}
-      filters={["Owned", "Want to Play", "Currently Playing"]}
+      description="Your household's tabletop game collection."
+      items={games}
+      filters={[
+        "All",
+        "Owned",
+        "Currently Playing",
+        "Want to Play",
+      ]}
     />
   );
 }

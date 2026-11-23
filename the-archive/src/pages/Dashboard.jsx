@@ -1,183 +1,186 @@
 
 import { Link } from "react-router-dom";
 import {
-  Archive,
   BookOpen,
-  Clapperboard,
-  Gamepad2,
-  Dice5,
-  Heart,
-  Play,
-  Clock3,
-  ChevronRight,
+  Headphones,
+  Library,
+  ArrowRight,
   Plus,
+  Bookmark,
 } from "lucide-react";
-import { collectionItems, wishlistItems, recentActivity } from "../data/sampleData";
-
-const categoryLinks = [
-  { title: "Books", count: "books", icon: BookOpen, path: "/books" },
-  { title: "Movies & TV", count: "movies", icon: Clapperboard, path: "/movies" },
-  { title: "Video Games", count: "games", icon: Gamepad2, path: "/video-games" },
-  { title: "Board Games", count: "boardGames", icon: Dice5, path: "/board-games" },
-];
-
-const currentlyEnjoying = [
-  { title: "Fourth Wing", creator: "Rebecca Yarros", person: "Maddie", progress: 62, type: "Reading", icon: BookOpen },
-  { title: "The Office", creator: "TV Series", person: "Maddie & Nick", progress: 45, type: "Watching", icon: Play },
-  { title: "Stardew Valley", creator: "ConcernedApe", person: "Nick", progress: 75, type: "Playing", icon: Gamepad2 },
-];
+import { useCollection } from "../contexts/CollectionContext";
+import { wishlistItems } from "../data/sampleData";
 
 function Dashboard() {
-  const totalItems = collectionItems.length;
-  const books = collectionItems.filter((item) => item.category === "Books").length;
-  const movies = collectionItems.filter((item) => item.category === "Movies & TV").length;
-  const games = collectionItems.filter((item) => item.category === "Video Games").length;
-  const boardGames = collectionItems.filter((item) => item.category === "Board Games").length;
+  const { items, loading, error } = useCollection();
 
-  const stats = [
-    { label: "Total collection", value: totalItems, detail: "Items in your archive", icon: Archive },
-    { label: "Books", value: books, detail: "In your library", icon: BookOpen },
-    { label: "Movies & TV", value: movies, detail: "On your shelves", icon: Clapperboard },
-    { label: "Wishlist", value: wishlistItems.length, detail: "Things to find", icon: Heart },
-  ];
+  if (loading) {
+    return <div className="page-content">Loading your library...</div>;
+  }
+
+  if (error) {
+    return <div className="page-content">{error}</div>;
+  }
+
+  const books = items.filter((item) => item.category === "Books");
+
+  const recentlyAdded = [...books]
+    .sort((a, b) => {
+      const dateA = a.createdAt?.toDate?.() || new Date(0);
+      const dateB = b.createdAt?.toDate?.() || new Date(0);
+      return dateB - dateA;
+    })
+    .slice(0, 5);
+
+  const physicalCopies = books.filter(
+    (book) => book.format === "Physical Copy"
+  ).length;
+
+  const audiobooks = books.filter(
+    (book) => book.format === "Audiobook"
+  ).length;
+
+  const genres = new Set(
+    books.map((book) => book.genre?.trim()).filter(Boolean)
+  );
 
   return (
-    <div className="dashboard">
+    <div className="page-content">
       <section className="welcome-section">
         <div>
-          <div className="eyebrow">YOUR HOUSEHOLD LIBRARY</div>
-          <h1>Your world, <em>collected.</em></h1>
-          <p>Everything you own, all in one place.</p>
+          <p className="eyebrow">YOUR SHARED BOOK LIBRARY</p>
+          <h1>
+            Welcome to <em>The Archive</em>
+          </h1>
+          <p>Every book you own, all in one place.</p>
         </div>
         <div className="welcome-decoration">
-          <Archive size={42} strokeWidth={1.2} />
+          <Library size={42} strokeWidth={1.2} />
         </div>
       </section>
 
       <section className="stats-grid">
-        {stats.map(({ label, value, detail, icon: Icon }) => (
-          <div className="stat-card" key={label}>
-            <div className="stat-top">
-              <span>{label}</span>
-              <Icon size={19} />
-            </div>
-            <div className="stat-value">{value}</div>
-            <div className="stat-detail">{detail}</div>
+        <div className="stat-card">
+          <div className="stat-top">
+            <span>Total Books</span>
+            <Library size={17} />
           </div>
-        ))}
+          <div className="stat-value">{books.length}</div>
+          <div className="stat-detail">In your shared collection</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-top">
+            <span>Physical Copies</span>
+            <BookOpen size={17} />
+          </div>
+          <div className="stat-value">{physicalCopies}</div>
+          <div className="stat-detail">Books on your shelves</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-top">
+            <span>Audiobooks</span>
+            <Headphones size={17} />
+          </div>
+          <div className="stat-value">{audiobooks}</div>
+          <div className="stat-detail">In your collection</div>
+        </div>
+
+        <div className="stat-card">
+          <div className="stat-top">
+            <span>Wantlist</span>
+            <Bookmark size={17} />
+          </div>
+          <div className="stat-value">{wishlistItems.length}</div>
+          <div className="stat-detail">Books you want to find</div>
+        </div>
       </section>
 
       <section className="section-block">
         <div className="section-heading">
           <div>
-            <div className="eyebrow">EXPLORE YOUR SHELVES</div>
-            <h2>Your collection</h2>
+            <p className="eyebrow">YOUR LIBRARY</p>
+            <h2>Explore Your Collection</h2>
           </div>
-        </div>
-
-        <div className="category-grid">
-          {categoryLinks.map(({ title, count, icon: Icon, path }) => (
-            <Link to={path} className="category-card" key={title}>
-              <div className="category-icon"><Icon size={22} /></div>
-              <div>
-                <h3>{title}</h3>
-                <p>{count === "books" ? books : count === "movies" ? movies : count === "games" ? games : boardGames} items</p>
-              </div>
-              <ChevronRight size={17} />
-            </Link>
-          ))}
-        </div>
-      </section>
-
-      <section className="section-block">
-        <div className="section-heading">
-          <div>
-            <div className="eyebrow">PICK UP WHERE YOU LEFT OFF</div>
-            <h2>Currently enjoying</h2>
-          </div>
-          <Link to="/activity/reading" className="text-link">
-            View activity <ChevronRight size={16} />
+          <Link to="/books" className="text-link">
+            View collection <ArrowRight size={14} />
           </Link>
         </div>
 
-        <div className="enjoying-grid">
-          {currentlyEnjoying.map(({ title, creator, person, progress, type, icon: Icon }) => (
-            <div className="enjoying-card" key={title}>
-              <div className="enjoying-icon"><Icon size={21} /></div>
-              <div className="enjoying-type">{type.toUpperCase()}</div>
-              <h3>{title}</h3>
-              <p>{creator}</p>
-              <div className="progress-info">
-                <span>{person}</span>
-                <strong>{progress}%</strong>
-              </div>
-              <div className="progress-track">
-                <div className="progress-fill" style={{ width: `${progress}%` }} />
-              </div>
+        <div className="category-grid">
+          <Link to="/books" className="category-card">
+            <div className="category-icon">
+              <BookOpen size={21} />
             </div>
-          ))}
+            <div>
+              <h3>All Books</h3>
+              <p>{books.length} books in your collection</p>
+            </div>
+            <ArrowRight size={18} />
+          </Link>
         </div>
+
+        {genres.size > 0 && (
+          <div className="genre-summary">
+            <p className="eyebrow">YOUR GENRES</p>
+            <div className="genre-list">
+              {[...genres].sort().map((genre) => (
+                <span className="genre-tag" key={genre}>
+                  {genre}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
       </section>
 
-      <div className="lower-grid">
-        <section className="section-block">
-          <div className="section-heading">
-            <div>
-              <div className="eyebrow">FRESHLY CATALOGED</div>
-              <h2>Recently added</h2>
-            </div>
-            <Link to="/books" className="text-link">
-              View collection <ChevronRight size={16} />
+      <section className="section-block">
+        <div className="section-heading">
+          <div>
+            <p className="eyebrow">RECENTLY ADDED</p>
+            <h2>Latest Additions</h2>
+          </div>
+          <Link to="/books" className="text-link">
+            Browse library <ArrowRight size={14} />
+          </Link>
+        </div>
+
+        {recentlyAdded.length === 0 ? (
+          <div className="empty-collection">
+            <BookOpen size={30} />
+            <h3>Your collection is waiting</h3>
+            <p>Add your first book to get started.</p>
+            <Link to="/add" className="add-button">
+              <Plus size={16} />
+              Add a book
             </Link>
           </div>
-
+        ) : (
           <div className="recent-list">
-            {[...collectionItems].slice(0, 4).map((item) => (
-              <div className="recent-item" key={item.id}>
+            {recentlyAdded.map((book) => (
+              <div className="recent-item" key={book.id}>
                 <div className="recent-thumb">
-                  {item.cover ? <img src={item.cover} alt="" /> : <Archive size={20} />}
+                  {book.cover ? (
+                    <img src={book.cover} alt={`${book.title} cover`} />
+                  ) : (
+                    <BookOpen size={20} />
+                  )}
                 </div>
+
                 <div className="recent-item-info">
-                  <strong>{item.title}</strong>
-                  <span>{item.creator}</span>
+                  <strong>{book.title}</strong>
+                  <span>{book.creator || "Unknown author"}</span>
                   <div className="item-meta">
-                    <span>{item.category}</span>
-                    <span>{item.year}</span>
+                    <span>{book.format || "Format not specified"}</span>
+                    {book.genre && <span>{book.genre}</span>}
                   </div>
                 </div>
-                <span className="owner-tag">{item.owner}</span>
               </div>
             ))}
           </div>
-        </section>
-
-        <section className="section-block">
-          <div className="section-heading">
-            <div>
-              <div className="eyebrow">AROUND THE HOUSEHOLD</div>
-              <h2>Recent activity</h2>
-            </div>
-          </div>
-
-          <div className="activity-list">
-            {recentActivity.map((entry) => (
-              <div className="activity-item" key={entry.id}>
-                <div className="activity-icon"><Clock3 size={17} /></div>
-                <div className="activity-copy">
-                  <p><strong>{entry.person}</strong> {entry.action}</p>
-                  <span>{entry.item}</span>
-                  <small>{entry.time}</small>
-                </div>
-              </div>
-            ))}
-          </div>
-        </section>
-      </div>
-
-      <div className="dashboard-footer">
-        <span>THE ARCHIVE</span>
-        <span>A little home for everything you love.</span>
-      </div>
+        )}
+      </section>
     </div>
   );
 }

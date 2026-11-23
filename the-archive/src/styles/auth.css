@@ -1,0 +1,143 @@
+
+/* AUTHENTICATION */
+.login-page {
+  min-height: 100vh;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 24px;
+  background: var(--background);
+}
+
+.login-card {
+  width: 100%;
+  max-width: 430px;
+  padding: 48px 40px;
+  text-align: center;
+  background: var(--surface);
+  border: 1px solid var(--border);
+  border-radius: 12px;
+}
+
+.login-brand-icon {
+  width: 64px;
+  height: 64px;
+  margin: 0 auto 22px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--background);
+  background: var(--secondary);
+  border-radius: 50%;
+}
+
+.login-eyebrow {
+  margin-bottom: 10px;
+  color: var(--primary);
+  font-size: 10px;
+  font-weight: 700;
+  letter-spacing: 2px;
+}
+
+.login-card h1 {
+  margin: 0;
+  color: var(--text);
+  font-family: "Playfair Display", serif;
+  font-size: 38px;
+  font-weight: 500;
+}
+
+.login-description {
+  margin: 10px 0 0;
+  color: var(--muted);
+  font-size: 14px;
+}
+
+.login-divider {
+  height: 1px;
+  margin: 32px 0;
+  background: var(--border);
+}
+
+.login-card h2 {
+  margin: 0;
+  color: var(--text);
+  font-family: "Playfair Display", serif;
+  font-size: 24px;
+  font-weight: 500;
+}
+
+.login-instructions {
+  margin: 10px 0 24px;
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.6;
+}
+
+.google-sign-in-button {
+  width: 100%;
+  min-height: 48px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 12px;
+  border: 1px solid var(--border);
+  border-radius: 6px;
+  background: white;
+  color: #333;
+  font-family: inherit;
+  font-size: 13px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.google-sign-in-button:hover {
+  background: #f5f5f5;
+}
+
+.google-sign-in-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.google-sign-in-button img {
+  width: 18px;
+  height: 18px;
+}
+
+.login-error {
+  margin: 16px 0 0;
+  color: #a33b2f;
+  font-size: 12px;
+}
+
+.login-footer {
+  margin: 32px 0 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 8px;
+  color: var(--muted);
+  font-size: 11px;
+}
+
+.auth-loading {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  background: var(--background);
+  color: var(--text);
+}
+
+.auth-loading span {
+  font-family: "Playfair Display", serif;
+  font-size: 30px;
+}
+
+.auth-loading p {
+  color: var(--muted);
+  font-size: 13px;
+}

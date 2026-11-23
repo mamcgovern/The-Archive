@@ -1,16 +1,36 @@
 
 import CollectionPage from "./CollectionPage";
-import { collectionItems } from "../data/sampleData";
+import { useCollection } from "../contexts/CollectionContext";
 
 function Movies() {
-  const items = collectionItems.filter((item) => item.category === "Movies & TV");
+  const { items, loading, error } = useCollection();
+
+  const movies = items.filter(
+    (item) => item.category === "Movies & TV"
+  );
+
+  if (loading) {
+    return <div className="page-content">Loading your movies...</div>;
+  }
+
+  if (error) {
+    return <div className="page-content">{error}</div>;
+  }
 
   return (
     <CollectionPage
       title="Movies & TV"
-      description="Your collection of films, series, and favorites."
-      items={items}
-      filters={["Watching", "Watched", "Want to Watch", "Blu-ray", "DVD", "4K"]}
+      description="Your household's movie and television collection."
+      items={movies}
+      filters={[
+        "All",
+        "Watching",
+        "Watched",
+        "Want to Watch",
+        "Blu-ray",
+        "DVD",
+        "4K",
+      ]}
     />
   );
 }

@@ -1,16 +1,37 @@
 
 import CollectionPage from "./CollectionPage";
-import { collectionItems } from "../data/sampleData";
+import { useCollection } from "../contexts/CollectionContext";
 
 function VideoGames() {
-  const items = collectionItems.filter((item) => item.category === "Video Games");
+  const { items, loading, error } = useCollection();
+
+  const games = items.filter(
+    (item) => item.category === "Video Games"
+  );
+
+  if (loading) {
+    return <div className="page-content">Loading your games...</div>;
+  }
+
+  if (error) {
+    return <div className="page-content">{error}</div>;
+  }
 
   return (
     <CollectionPage
       title="Video Games"
-      description="Every game in your household collection."
-      items={items}
-      filters={["Playing", "Completed", "Backlog", "Nintendo Switch", "PlayStation", "Xbox", "PC"]}
+      description="Your household's video game collection."
+      items={games}
+      filters={[
+        "All",
+        "Playing",
+        "Completed",
+        "Backlog",
+        "Nintendo Switch",
+        "PlayStation",
+        "Xbox",
+        "PC",
+      ]}
     />
   );
 }
